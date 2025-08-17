@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+python-dotenv = "*"
+langchain-google-genai = "*"
+chromadb = "*"
+couchbase = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+sentence-transformers = "*"
+langchain = "*"
+langchain-community = "*"
+langchain-openrouter = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.13"
