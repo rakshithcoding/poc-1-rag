@@ -15,6 +15,21 @@ load_dotenv()
 import database
 import rag_chain
 
+# Add this block at the end of the file
+if __name__ == "__main__":
+    import uvicorn
+
+    # Get the port from the environment variable, default to 8000 if not set
+    port = int(os.getenv("PORT", 8000))
+    
+    # Run the Uvicorn server programmatically
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True  # reload=True is great for development
+    )
+
 # --- App Lifecycle (Startup & Shutdown) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
