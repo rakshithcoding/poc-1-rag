@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 from langchain.prompts import PromptTemplate
 
 # Load environment variables from .env file
@@ -14,11 +15,29 @@ load_dotenv()
 import database
 import rag_chain
 
+# --- App Lifecycle (Startup & Shutdown) ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # This code runs on startup
+    print("--- Server is starting up ---")
+    if database.cluster is None:
+        print("FATAL: Database connection failed. The server may not operate correctly.")
+    if rag_chain.llm is None or rag_chain.retriever is None:
+        print("FATAL: RAG chain components failed to initialize. The server may not operate correctly.")
+    print("--- Startup complete ---")
+    
+    yield # The application runs while the server is alive
+    
+    # This code runs on shutdown
+    print("--- Server is shutting down ---")
+
+
 # --- FastAPI App Initialization ---
 app = FastAPI(
     title="AI Conversational Agent API",
     description="API for the RAG-based conversational agent to query a Couchbase database.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan  # Use the new lifespan event handler
 )
 
 # --- CORS Configuration ---
@@ -40,19 +59,6 @@ class QueryResponse(BaseModel):
     generated_n1ql: str
     result: str
 
-# --- App Lifecycle Events ---
-@app.on_event("startup")
-def on_startup():
-    """
-    Perform initial checks on startup.
-    """
-    print("--- Server is starting up ---")
-    if database.cluster is None:
-        print("FATAL: Database connection failed. The server may not operate correctly.")
-    if rag_chain.llm is None or rag_chain.retriever is None:
-        print("FATAL: RAG chain components failed to initialize. The server may not operate correctly.")
-    print("--- Startup complete ---")
-
 
 # --- API Endpoint ---
 @app.post("/generate-report", response_model=QueryResponse)
@@ -64,7 +70,7 @@ async def generate_report(request: QueryRequest):
     user_query = request.query
     print(f"\nReceived new query: {user_query}")
 
-    max_retries = 6
+    max_retries = 3
     last_error = None
     query_result = None
     generated_n1ql = ""
